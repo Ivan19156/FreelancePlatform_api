@@ -10,11 +10,11 @@ namespace FreelancerPlatform.Controllers
     [Route("api/[controller]")]
     public class UsersController : ControllerBase
     {
-        private readonly UserService _userService;
+        private readonly IUserService _iuserService;
 
-        public UsersController(UserService userService)
+        public UsersController(IUserService iuserService)
         {
-            _userService = userService;
+            _iuserService = iuserService;
         }
 
         // Реєстрація
