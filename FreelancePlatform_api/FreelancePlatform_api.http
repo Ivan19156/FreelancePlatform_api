@@ -1,0 +1,6 @@
+@FreelancePlatform_api_HostAddress = http://localhost:5176
+
+GET {{FreelancePlatform_api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
