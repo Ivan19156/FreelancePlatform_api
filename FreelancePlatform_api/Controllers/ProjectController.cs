@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using DataAccess.Models;
 using DataAccess.Services;
+using DataAccess.DTOs.Projects;
 
 namespace FreelancerPlatform.Controllers
 {
@@ -10,39 +11,82 @@ namespace FreelancerPlatform.Controllers
     [ApiController]
     public class ProjectsController : ControllerBase
     {
-        private readonly ProjectService _projectService;
+        private readonly IProjectService _projectService;
 
-        public ProjectsController(ProjectService projectService)
+        public ProjectsController(IProjectService iprojectService)
         {
-            _projectService = projectService;
+            _projectService = iprojectService;
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateProject([FromBody] Project project)
+        public async Task<IActionResult> CreateProject([FromBody] ProjectDto projectDto)
         {
-            if (project == null)
+            if (projectDto == null)
             {
-                return BadRequest("Project cannot be null.");
+                return BadRequest("Project data cannot be null.");
             }
+
+            // Перетворення DTO на модель
+            var project = new Project
+            {
+                Name = projectDto.Name,
+                Description = projectDto.Description,
+                Budget = projectDto.Budget,
+                Status = projectDto.Status,
+                Category = projectDto.Category,
+                CustomerId = projectDto.CustomerId,
+                ExecutorId = projectDto.ExecutorId
+            };
+
+            // Викликаємо сервіс для створення проекту
             var result = await _projectService.CreateProjectAsync(project);
+
             if (result)
+            {
+                // Повертаємо успішний результат з CreatedAtAction
                 return CreatedAtAction(nameof(GetProjectById), new { id = project.Id }, project);
+            }
+
             return BadRequest("Error creating project.");
         }
 
+
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateProject(int id, [FromBody] Project project)
+        public async Task<IActionResult> UpdateProject(int id, [FromBody] UpdateProjectDto dto)
         {
-            if (id != project.Id)
+            if (dto == null)
+            {
+                return BadRequest("Project data cannot be null.");
+            }
+            
+            // Перевірка на відповідність ID
+            if (id != dto.Id)
             {
                 return BadRequest("Project ID mismatch.");
             }
 
+            // Створення об'єкта проекту для оновлення
+            var project = new Project
+            {
+                Id = id,
+                Name = dto.Name,
+                Description = dto.Description,
+                Budget = dto.Budget,
+                Status = dto.Status,
+                Category = dto.Category,
+                CustomerId = dto.CustomerId,
+                ExecutorId = dto.ExecutorId
+            };
+
             var result = await _projectService.UpdateProjectAsync(project);
             if (result)
-                return Ok(project);
-            return NotFound("Project not found or update not allowed.");
+            {
+                return Ok(project);  // Повертаємо оновлений проект
+            }
+
+            else { return NotFound("Project not found or update not allowed."); }
         }
+
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteProject(int id)

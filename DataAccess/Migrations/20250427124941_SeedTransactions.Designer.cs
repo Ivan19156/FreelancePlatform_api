@@ -4,6 +4,7 @@ using DataAccess.Date;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DataAccess.Migrations
 {
     [DbContext(typeof(FreelancePlatformDbContext))]
-    partial class FreelancePlatformDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250427124941_SeedTransactions")]
+    partial class SeedTransactions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -171,6 +174,7 @@ namespace DataAccess.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("ReceiverId")
@@ -180,6 +184,7 @@ namespace DataAccess.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Type")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("UserId")
@@ -187,9 +192,7 @@ namespace DataAccess.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ReceiverId");
-
-                    b.HasIndex("SenderId");
+                    b.HasIndex("UserId");
 
                     b.ToTable("Transactions");
 
@@ -198,23 +201,23 @@ namespace DataAccess.Migrations
                         {
                             Id = 1,
                             Amount = 1000m,
-                            Date = new DateTime(2025, 4, 27, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Date = new DateTime(2025, 4, 27, 12, 49, 39, 328, DateTimeKind.Utc).AddTicks(2709),
                             Description = "Initial payment for project",
                             ReceiverId = 2,
                             SenderId = 1,
                             Type = "Payment",
-                            UserId = 0
+                            UserId = 1
                         },
                         new
                         {
                             Id = 2,
                             Amount = 500m,
-                            Date = new DateTime(2025, 4, 27, 0, 10, 0, 0, DateTimeKind.Unspecified),
+                            Date = new DateTime(2025, 4, 27, 12, 59, 39, 328, DateTimeKind.Utc).AddTicks(4220),
                             Description = "Refund for the project",
                             ReceiverId = 1,
                             SenderId = 2,
                             Type = "Refund",
-                            UserId = 0
+                            UserId = 2
                         });
                 });
 
@@ -331,19 +334,13 @@ namespace DataAccess.Migrations
 
             modelBuilder.Entity("DataAccess.Models.Transaction", b =>
                 {
-                    b.HasOne("DataAccess.Models.User", "Receiver")
-                        .WithMany()
-                        .HasForeignKey("ReceiverId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("DataAccess.Models.User", "Sender")
+                    b.HasOne("DataAccess.Models.User", "User")
                         .WithMany("Transactions")
-                        .HasForeignKey("SenderId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                    b.Navigation("Receiver");
-
-                    b.Navigation("Sender");
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("DataAccess.Models.Project", b =>

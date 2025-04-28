@@ -1,8 +1,7 @@
+using DataAccess.Date;
 using DataAccess.Services;
 using FreelancePlatform.Core.Services;
 using Microsoft.EntityFrameworkCore;
-using DataAccess.Date;
-
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,14 +21,26 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Додаємо реєстрацію DbContext (замість "YourDbContext" використайте свій контекст)
+// Додаємо реєстрацію DbContext
 builder.Services.AddDbContext<FreelancePlatformDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Додаємо реєстрацію UserService
+// Додаємо реєстрацію UserService та TransactionService
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ITransactionService, TransactionService>();
+builder.Services.AddScoped<IRequestService, RequestService>();
+builder.Services.AddScoped<IProjectService, ProjectService>();
+builder.Services.AddScoped<IFeedbackService, FeedbackService>();
+builder.Services.AddScoped<IChatService, ChatService>();
 
 var app = builder.Build();
+
+// Виконати сідінг при першому запуску
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<FreelancePlatformDbContext>();
+    context.Database.Migrate(); // Застосувати міграції, якщо вони є
+}
 
 // Використання CORS
 app.UseCors("AllowAll");

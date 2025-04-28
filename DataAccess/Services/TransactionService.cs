@@ -63,6 +63,7 @@ namespace DataAccess.Services
                 SenderId = null,
                 Amount = amount,
                 Date = DateTime.Now,
+                Description = $"Deposit of {amount} USD"
             };
 
             _context.Transactions.Add(transaction);

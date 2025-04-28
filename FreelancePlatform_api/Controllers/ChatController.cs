@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using DataAccess.Models;
 using DataAccess.Services;
+using DataAccess.DTOs.Chats;
 
 namespace FreelancePlatform.API.Controllers
 {
@@ -10,20 +11,29 @@ namespace FreelancePlatform.API.Controllers
     [Route("api/[controller]")]
     public class ChatController : ControllerBase
     {
-        private readonly ChatService _chatService;
+        private readonly IChatService _chatService;
 
-        public ChatController(ChatService chatService)
+        public ChatController(IChatService ichatService)
         {
-            _chatService = chatService;
+            _chatService = ichatService;
         }
 
         // Отримати список чатів
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Chat>>> GetChats()
+        public async Task<ActionResult<IEnumerable<ChatDto>>> GetChats()
         {
             var chats = await _chatService.GetAllChatsAsync();
-            return Ok(chats);
+
+            var chatDtos = chats.Select(c => new ChatDto
+            {
+                Id = c.Id,
+                CustomerId = c.RecipientId,
+                FreelancerId = c.SenderId
+            }).ToList();
+
+            return Ok(chatDtos);
         }
+
 
         // Отримати чат за ID
         [HttpGet("{id}")]
@@ -37,25 +47,59 @@ namespace FreelancePlatform.API.Controllers
 
         // Створити новий чат
         [HttpPost]
-        public async Task<ActionResult> CreateChat(Chat chat)
+        public async Task<ActionResult> CreateChat([FromBody] CreateChatDto dto)
         {
+            if (dto == null)
+            {
+                return BadRequest("Chat data cannot be null.");
+            }
+
+            var chat = new Chat
+            {
+
+                RecipientId = dto.CustomerId,
+                SenderId = dto.FreelancerId,
+                Message = dto.Message,
+            };
+
             await _chatService.CreateChatAsync(chat);
-            return CreatedAtAction(nameof(GetChatById), new { id = chat.Id }, chat);
+
+            return CreatedAtAction(nameof(GetChatById), new { id = chat.Id }, new
+            {
+                chat.Id,
+                
+                chat.RecipientId,
+                chat.SenderId,
+                chat.Message,
+            });
         }
+
 
         // Оновити чат
         [HttpPut("{id}")]
-        public async Task<ActionResult> UpdateChat(int id, Chat chat)
+        public async Task<ActionResult> UpdateChat(int id, [FromBody] UpdateChatDto dto)
         {
-            if (id != chat.Id)
-                return BadRequest();
+            if (dto == null)
+            {
+                return BadRequest("Chat data cannot be null.");
+            }
+
+            var chat = new Chat
+            {
+                Id = id,
+                
+                RecipientId = dto.CustomerId,
+                SenderId = dto.FreelancerId,
+                Message = dto.Message,
+            };
 
             var updated = await _chatService.UpdateChatAsync(chat);
             if (!updated)
-                return NotFound();
+                return NotFound("Chat not found.");
 
             return NoContent();
         }
+
 
         // Видалити чат
         [HttpDelete("{id}")]

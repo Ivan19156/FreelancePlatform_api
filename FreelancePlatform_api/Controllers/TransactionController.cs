@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using DataAccess.Models;
 using DataAccess.Services;
+using FreelancePlatform.Core.DTOs.Transactions;
 
 namespace FreelancerPlatform.Controllers
 {
@@ -10,79 +11,84 @@ namespace FreelancerPlatform.Controllers
     [ApiController]
     public class TransactionsController : ControllerBase
     {
-        private readonly TransactionService _transactionService;
+        private readonly ITransactionService _transactionService;
 
-        public TransactionsController(TransactionService transactionService)
+        public TransactionsController(ITransactionService itransactionService)
         {
-            _transactionService = transactionService;
+            _transactionService = itransactionService;
         }
 
         // Створення транзакції
         [HttpPost]
-        public async Task<IActionResult> CreateTransaction([FromBody] Transaction transaction)
+        public async Task<IActionResult> CreateTransaction([FromBody] CreateTransactionDto dto)
         {
-            if (transaction == null)
+            if (dto == null)
             {
                 return BadRequest("Invalid transaction data.");
             }
 
-            var result = await _transactionService.CreateTransactionAsync(transaction);
-            if (result.Success)
+            // Мапиш DTO в Entity
+            var transaction = new Transaction
             {
-                return Ok(result.Message);
-            }
+                SenderId = dto.SenderId,
+                ReceiverId = dto.ReceiverId,
+                Amount = dto.Amount,
+                Type = dto.Type,
+                Description = dto.Description,
+                Date = DateTime.UtcNow // або DateTime.Now, якщо хочеш локальний час
+            };
 
-            return BadRequest(result.Message);
+            var result = await _transactionService.CreateTransactionAsync(transaction);
+            return result.Success ? Ok(result.Message) : BadRequest(result.Message);
         }
+
 
         // Депонування коштів на рахунок користувача
         [HttpPost("deposit")]
-        public async Task<IActionResult> DepositFunds([FromQuery] int userId, [FromQuery] decimal amount)
+        public async Task<IActionResult> DepositFunds([FromBody] DepositFundsDto dto)
         {
-            if (amount <= 0)
+            if (dto.Amount <= 0)
             {
                 return BadRequest("Amount must be greater than zero.");
             }
 
-            var result = await _transactionService.DepositFundsAsync(userId, amount);
-            if (result.Success)
-            {
-                return Ok(result.Message);
-            }
-
-            return BadRequest(result.Message);
+            var result = await _transactionService.DepositFundsAsync(dto.UserId, dto.Amount);
+            return result.Success ? Ok(result.Message) : BadRequest(result.Message);
         }
+
 
         // Виведення коштів з рахунку користувача
         [HttpPost("withdraw")]
-        public async Task<IActionResult> WithdrawFunds([FromQuery] int userId, [FromQuery] decimal amount)
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> WithdrawFunds([FromBody] WithdrawFundsDto dto)
         {
-            if (amount <= 0)
+            if (dto.Amount <= 0)
             {
                 return BadRequest("Amount must be greater than zero.");
             }
 
-            var result = await _transactionService.WithdrawFundsAsync(userId, amount);
-            if (result.Success)
-            {
-                return Ok(result.Message);
-            }
-
-            return BadRequest(result.Message);
+            var result = await _transactionService.WithdrawFundsAsync(dto.UserId, dto.Amount);
+            return result.Success ? Ok(result.Message) : BadRequest(result.Message);
         }
+
 
         // Отримання історії транзакцій для користувача
         [HttpGet("history/{userId}")]
-        public async Task<IActionResult> GetTransactionsHistory(int userId)
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetTransactionsHistory([FromRoute] int userId)
         {
             var transactions = await _transactionService.GetTransactionsHistoryAsync(userId);
-            if (transactions == null || transactions.Count == 0)
+
+            if (transactions == null || !transactions.Any())
             {
                 return NotFound("No transactions found for this user.");
             }
 
             return Ok(transactions);
         }
+
     }
 }
 

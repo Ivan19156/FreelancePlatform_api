@@ -1,4 +1,5 @@
-﻿using DataAccess.Models;
+﻿using DataAccess.DTOs.Feedbacks;
+using DataAccess.Models;
 using FreelancePlatform.Core.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,34 +9,65 @@ namespace FreelancePlatform.API.Controllers
     [Route("api/[controller]")]
     public class FeedbackController : ControllerBase
     {
-        private readonly FeedbackService _feedbackService;
+        private readonly IFeedbackService _feedbackService;
 
-        public FeedbackController(FeedbackService feedbackService)
+        public FeedbackController(IFeedbackService ifeedbackService)
         {
-            _feedbackService = feedbackService;
+            _feedbackService = ifeedbackService;
         }
 
         [HttpPost("leave")]
-        public async Task<IActionResult> LeaveFeedback(int senderId, int recipientId, int rating, string comment)
+        public async Task<IActionResult> LeaveFeedback([FromBody] LeaveFeedbackDto dto)
         {
-            var result = await _feedbackService.LeaveFeedbackAsync(senderId, recipientId, rating, comment);
+            if (dto == null)
+            {
+                return BadRequest("Feedback data cannot be null.");
+            }
+
+            var result = await _feedbackService.LeaveFeedbackAsync(dto.SenderId, dto.RecipientId, dto.Rating, dto.Comment);
+
             if (!result)
                 return BadRequest("Invalid feedback data.");
+
             return Ok("Feedback submitted successfully.");
         }
 
+
         [HttpGet("user/{userId}")]
-        public async Task<ActionResult<List<Feedback>>> GetFeedbackForUser(int userId)
+        public async Task<ActionResult<List<FeedbackDto>>> GetFeedbackForUser(int userId)
         {
             var feedback = await _feedbackService.GetFeedbackForUserAsync(userId);
-            return Ok(feedback);
+
+            if (feedback == null || feedback.Count == 0)
+                return NotFound("No feedback found for this user.");
+
+            var feedbackDtos = feedback.Select(f => new FeedbackDto
+            {
+                Id = f.Id,
+                SenderId = f.SenderId,
+                RecipientId = f.RecipientId,
+                Rating = f.Ratings,
+                Comment = f.Comment,
+                CreatedAt = f.Date,
+            }).ToList();
+
+            return Ok(feedbackDtos);
         }
 
+
         [HttpGet("user/{userId}/average")]
-        public async Task<ActionResult<double>> GetAverageRating(int userId)
+        public async Task<ActionResult<AverageRatingDto>> GetAverageRating(int userId)
         {
             var avg = await _feedbackService.GetAverageRatingAsync(userId);
-            return Ok(avg);
+
+            var dto = new AverageRatingDto
+            {
+                UserId = userId,
+                AverageRating = avg
+            };
+
+            return Ok(dto);
         }
+
     }
 }
